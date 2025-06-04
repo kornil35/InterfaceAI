@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mythomax-l2-13b Chat</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            height: 100vh;
+        }
+        #chat {
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .msg {
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        .user {
+            text-align: right;
+            color: #0b79d0;
+        }
+        .assistant {
+            text-align: left;
+            color: #444;
+        }
+        #inputArea {
+            display: flex;
+            width: 100%;
+            max-width: 800px;
+            padding: 10px 20px;
+            box-sizing: border-box;
+        }
+        #message {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        #send {
+            margin-left: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #0b79d0;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat"></div>
+    <div id="inputArea">
+        <input type="text" id="message" placeholder="Введите сообщение...">
+        <button id="send">Отправить</button>
+    </div>
+
+    <script>
+        const chatDiv = document.getElementById('chat');
+        const messageInput = document.getElementById('message');
+        const sendBtn = document.getElementById('send');
+
+        let messages = [];
+
+        function appendMessage(role, text) {
+            const p = document.createElement('p');
+            p.className = `msg ${role}`;
+            p.textContent = text;
+            chatDiv.appendChild(p);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const content = messageInput.value.trim();
+            if (!content) return;
+            messageInput.value = '';
+            appendMessage('user', content);
+            messages.push({ role: 'user', content });
+
+            const response = await fetch('http://localhost:1234/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: 'mythomax-l2-13b',
+                    messages,
+                    stream: false
+                })
+            });
+            if (!response.ok) {
+                appendMessage('assistant', 'Ошибка сети');
+                return;
+            }
+            const data = await response.json();
+            const reply = data.choices[0].message.content;
+            appendMessage('assistant', reply);
+            messages.push({ role: 'assistant', content: reply });
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
